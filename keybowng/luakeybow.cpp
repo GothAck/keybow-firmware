@@ -67,6 +67,7 @@ bool LuaKeybowImpl::set_modifier(int key, int state) {
     _modifiers |= state << key;
   }
   sendHIDReport();
+  return true;
 }
 
 bool LuaKeybowImpl::set_media_key(int key, int state) {
@@ -77,6 +78,7 @@ bool LuaKeybowImpl::set_media_key(int key, int state) {
     _media_keys |= state << key;
   }
   sendHIDReport();
+  return true;
 }
 
 uint64_t LuaKeybowImpl::millis() {
@@ -127,7 +129,7 @@ bool LuaKeybowImpl::clear_lights() {
 }
 
 bool LuaKeybowImpl::load_pattern(std::string file) {
-  lua->_lights->read(file);
+  return lua->_lights->read(file);
 }
 
 int LuaKeybowImpl::ascii_to_shift(int key) {
@@ -165,6 +167,7 @@ bool LuaKeybowImpl::set_key(int key, bool pressed) {
   }
 
   sendHIDReport();
+  return true;
 }
 
 void LuaKeybowImpl::sendHIDReport() {
@@ -199,6 +202,7 @@ bool LuaKeybowImpl::send_midi_note(int channel, int note, int velocity, int spee
   buf[2] = velocity & 0x7f;
 
   lua->_keys->sendMIDIData((const unsigned char *)&buf, 3);
+  return true;
 }
 
 shared_ptr<Lua> LuaKeybowImpl::lua = nullptr;
