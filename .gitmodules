@@ -1,0 +1,9 @@
+[submodule "keybowng/vendor/sol2"]
+	path = keybowng/vendor/sol2
+	url = https://github.com/ThePhD/sol2
+[submodule "keybowng/vendor/plog"]
+	path = keybowng/vendor/plog
+	url = https://github.com/SergiusTheBest/plog
+[submodule "keybowng/vendor/libusbgx"]
+	path = keybowng/vendor/libusbgx
+	url = https://github.com/libusbgx/libusbgx
