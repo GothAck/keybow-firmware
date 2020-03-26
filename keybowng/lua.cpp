@@ -43,12 +43,14 @@ bool Lua::load(std::string file) {
 
 void Lua::setup() {
   sol::protected_function setup = _impl->lua["setup"];
-  auto ret = setup();
+  if (setup.valid()) {
+    auto ret = setup();
 
-  if (!ret.valid()) {
-    sol::error err = ret;
-    PLOG_WARNING << "Failed to call setup function";
-    PLOG_ERROR << err.what();
+    if (!ret.valid()) {
+      sol::error err = ret;
+      PLOG_WARNING << "Failed to call setup function";
+      PLOG_ERROR << err.what();
+    }
   }
 }
 
