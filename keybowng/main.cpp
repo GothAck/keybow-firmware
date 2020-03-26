@@ -23,9 +23,10 @@ R"(Keybow.
       keybow [options]
 
     Options:
-      -h --help           This help.
-      -d DIR --dir DIR    Directory containing lua scripts. [default: .]
-      -n --no-output      Redirect all HID and MIDI output to /dev/null.
+      -h --help                   This help.
+      -d DIR --dir DIR            Directory containing lua scripts. [default: .]
+      -n --no-output              Redirect all HID and MIDI output to /dev/null.
+      -l LEVEL --loglevel LEVEL   Set log level (verbose, debug, warning, error, none). [default: info]
 )";
 
 using namespace std;
@@ -46,14 +47,14 @@ int main(int argc, char *argv[]) {
   auto args = docopt::docopt(USAGE, {argv + 1, argv + argc}, true);
 
   static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
-  plog::init(plog::verbose, &consoleAppender);
+  plog::init(plog::severityFromString(args["--loglevel"].asString().c_str()), &consoleAppender);
 
   const auto scriptDir = args["--dir"].asString();
   filesystem::current_path(scriptDir);
   PLOG_DEBUG << "Current path: " << filesystem::current_path().string();
   const auto noOutput = args["--no-output"].asBool();
 
-  PLOG_DEBUG << "Initializing";
+  PLOG_INFO << "Initializing";
 
   PLOG_DEBUG << "keys init";
   if (!keys->init(bind(mem_fn(&Lua::handleKey), lua, placeholders::_1, placeholders::_2))) {
@@ -104,12 +105,14 @@ int main(int argc, char *argv[]) {
 
   lua->setup();
 
-  PLOG_DEBUG << "run main loop";
+  PLOG_INFO << "Running main loop";
   while (running) {
     lua->tick();
     keys->update();
     this_thread::sleep_for(chrono::milliseconds(1));
   }
+
+  PLOG_INFO << "Stopping";
 
 lua_deinit:
   PLOG_DEBUG << "lua deinit";
