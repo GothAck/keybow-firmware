@@ -142,7 +142,7 @@ struct usbg_f_hid_attrs f_attrs = {
     .desc = (char *)&report_desc,
     .len = sizeof(report_desc),
   },
-  .report_length = 16,
+  .report_length = HID_REPORT_SIZE,
   .subclass = 0,
 };
 

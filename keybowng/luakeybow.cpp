@@ -180,7 +180,7 @@ void LuaKeybowImpl::sendHIDReport() {
   int i = 3;
   for (auto &key : _keys) {
     buf[i++] = key;
-    if (i >= 16) break; // Break at max buffer size
+    if (i >= HID_REPORT_SIZE) break; // Break at max buffer size
   }
 
   lua->_keys->sendHIDReport((const unsigned char *)&buf, HID_REPORT_SIZE);
