@@ -20,13 +20,14 @@ static const char USAGE[] =
 R"(Keybow.
 
     Usage:
-      keybow [options]
+      keybow [options] [--plugin=PLUGIN]...
 
     Options:
-      -h --help                   This help.
-      -d DIR --dir DIR            Directory containing lua scripts. [default: .]
-      -n --no-output              Redirect all HID and MIDI output to /dev/null.
-      -l LEVEL --loglevel LEVEL   Set log level (verbose, debug, warning, error, none). [default: info]
+      -h --help                     This help.
+      -d DIR --dir DIR              Directory containing lua scripts. [default: .]
+      -n --no-output                Redirect all HID and MIDI output to /dev/null.
+      -l LEVEL --loglevel LEVEL     Set log level (verbose, debug, warning, error, none). [default: info]
+      -p PLUGIN --plugin=PLUGIN     Load a plugin
 )";
 
 using namespace std;
@@ -104,6 +105,12 @@ int main(int argc, char *argv[]) {
   }
 
   lua->setup();
+
+  if (args.find("--plugin") != args.end()) {
+    for (auto &plugin : args["--plugin"].asStringList()) {
+      lua->load_plugin(plugin);
+    }
+  }
 
   PLOG_INFO << "Running main loop";
   while (running) {

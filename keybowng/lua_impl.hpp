@@ -15,5 +15,7 @@ struct LuaImpl {
 
   std::unordered_map<std::string, std::unordered_map<std::string, sol::table>> plugins;
 
+  sol::table load_plugin(std::string plugin);
+
   Lua *p;
 };

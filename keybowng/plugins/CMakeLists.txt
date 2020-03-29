@@ -1,1 +1,2 @@
 add_subdirectory(bluetooth_hid)
+add_subdirectory(repl)

@@ -39,6 +39,48 @@ bool LuaImpl::sendMIDIReport(std::string report) {
   return p->_keys->sendMIDIReport(report);
 }
 
+sol::table LuaImpl::load_plugin(std::string plugin) {
+    PLOG_INFO << "Loading plugin " << plugin;
+  sol::safe_function require = (*lua)["require"];
+
+  auto res = require(plugin);
+
+  bool success = false;
+  if (res.valid()) {
+    sol::table table = res;
+    string plugin_type = table["type"];
+    PLOG_WARNING << plugin_type;
+
+    if (plugins.find(plugin_type) == plugins.end()) {
+      plugins[plugin_type] = {{plugin, table}};
+      success = true;
+    } else {
+      auto &plugins_type = plugins[plugin_type];
+      if (plugins_type.find(plugin) == plugins_type.end()) {
+        plugins_type[plugin] = table;
+        success = true;
+      }
+    }
+
+    if (success) {
+      sol::safe_function init = table["init"];
+      PLOG_DEBUG << "Plugin has init function? " << init.valid();
+      if (init.valid()) {
+        auto ret = init();
+        if (!ret.valid()) {
+          sol::error err = ret;
+          PLOG_ERROR << "Error initializing plugin " << err.what();
+        }
+      }
+      return table;
+    }
+  }
+
+  PLOG_ERROR << "Failed to load plugin " << plugin;
+
+  return lua->create_table();
+}
+
 Lua::Lua(std::shared_ptr<Keys> keys, std::shared_ptr<Lights> lights):
   _keys(keys),
   _lights(lights),
@@ -50,6 +92,7 @@ Lua::~Lua() {
 }
 
 bool Lua::init() {
+  unique_lock<recursive_mutex> lock(_mutex);
   PLOG_DEBUG << "open libraries";
   _impl->lua->open_libraries(sol::lib::base, sol::lib::math, sol::lib::string, sol::lib::package);
   PLOG_DEBUG << "init keybow table";
@@ -59,6 +102,8 @@ bool Lua::init() {
 }
 
 void Lua::deinit() {
+  unique_lock<recursive_mutex> lock(_mutex);
+
   for (auto &pm : _impl->plugins) {
     for (auto &p : pm.second) {
       sol::safe_function deinit = p.second["deinit"];
@@ -75,6 +120,7 @@ void Lua::deinit() {
 }
 
 bool Lua::load(std::string file) {
+  unique_lock<recursive_mutex> lock(_mutex);
   sol::protected_function_result res = _impl->lua->safe_script_file(file, &sol::script_pass_on_error);
   if (!res.valid()) {
     sol::error err = res;
@@ -85,7 +131,26 @@ bool Lua::load(std::string file) {
   return true;
 }
 
+bool Lua::interpret(std::string code, bool print_exception) {
+  unique_lock<recursive_mutex> lock(_mutex);
+  auto res = _impl->lua->safe_script(code);
+  if (!res.valid()) {
+    if (print_exception) {
+      sol::error err = res;
+      PLOG_ERROR << err.what();
+    }
+    return false;
+  }
+  return true;
+}
+
+
+bool Lua::load_plugin(std::string plugin) {
+  return !_impl->load_plugin(plugin).empty();
+}
+
 void Lua::setup() {
+  unique_lock<recursive_mutex> lock(_mutex);
   sol::protected_function setup = (*_impl->lua)["setup"];
   if (setup.valid()) {
     auto ret = setup();
@@ -99,6 +164,7 @@ void Lua::setup() {
 }
 
 void Lua::tick() {
+  unique_lock<recursive_mutex> lock(_mutex);
   sol::protected_function tick = (*_impl->lua)["tick"];
   if (tick.valid()) {
     tick();
@@ -106,6 +172,7 @@ void Lua::tick() {
 }
 
 void Lua::handleKey(int key, bool state) {
+  unique_lock<recursive_mutex> lock(_mutex);
   PLOG_DEBUG << "handleKey " << key << " " << state;
   char fn[14];
   snprintf(fn, 14, "handle_key_%02d", key);

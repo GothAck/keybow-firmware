@@ -35,7 +35,9 @@ struct LuaKeybowImpl {
 
   static bool send_midi_note(int channel, int note, int velocity, int speed);
 
-  static bool load_plugin(string plugin);
+  static sol::table load_plugin(string plugin);
+
+  static bool eval(string code);
 
   static shared_ptr<Lua> lua;
   static shared_ptr<sol::state> state;
@@ -62,6 +64,8 @@ void LuaKeybow::initTable(shared_ptr<sol::state> lua, std::shared_ptr<Lua> ref) 
   lua->set("keybow_load_pattern", &LuaKeybowImpl::load_pattern);
   lua->set("keybow_set_key", &LuaKeybowImpl::set_key);
   lua->set("keybow_send_midi_note", &LuaKeybowImpl::send_midi_note);
+  lua->set("load_plugin", &LuaKeybowImpl::load_plugin);
+  lua->set("eval", &LuaKeybowImpl::eval);
 }
 
 bool LuaKeybowImpl::set_modifier(int key, int state) {
@@ -141,6 +145,7 @@ int LuaKeybowImpl::ascii_to_shift(int key) {
   if (key >= 65 && key <= 90) {
     return true;
   }
+  return false;
 }
 
 int LuaKeybowImpl::ascii_to_hid(int key) {
@@ -211,48 +216,12 @@ bool LuaKeybowImpl::send_midi_note(int channel, int note, int velocity, int spee
   return true;
 }
 
-bool LuaKeybowImpl::load_plugin(string plugin) {
-  PLOG_INFO << "Loading plugin " << plugin;
-  sol::safe_function require = (*state)["require"];
+sol::table LuaKeybowImpl::load_plugin(string plugin) {
+  return lua->_impl->load_plugin(plugin);
+}
 
-  auto res = require(plugin);
-
-  bool success = false;
-  if (res.valid()) {
-    sol::table table = res;
-    string plugin_type = table["type"];
-    PLOG_WARNING << plugin_type;
-
-    auto &plugins = lua->_impl->plugins;
-    if (plugins.find(plugin_type) == plugins.end()) {
-      plugins[plugin_type] = {{plugin, table}};
-      success = true;
-    } else {
-      auto &plugins_type = plugins[plugin_type];
-      if (plugins_type.find(plugin) == plugins_type.end()) {
-        plugins_type[plugin] = table;
-        success = true;
-      }
-    }
-
-    if (success) {
-      sol::safe_function init = table["init"];
-      PLOG_DEBUG << "Plugin has init function? " << init.valid();
-      if (init.valid()) {
-        auto ret = init();
-        if (!ret.valid()) {
-          sol::error err = ret;
-          PLOG_ERROR << "Error initializing plugin " << err.what();
-        }
-      }
-    }
-  }
-
-  if (!success) {
-    PLOG_ERROR << "Failed to load plugin " << plugin;
-  }
-
-  return success;
+bool LuaKeybowImpl::eval(string code) {
+  return lua->interpret(code);
 }
 
 shared_ptr<Lua> LuaKeybowImpl::lua = nullptr;
