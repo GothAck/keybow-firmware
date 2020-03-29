@@ -1,3 +1,5 @@
+#include <string>
+
 #pragma once
 
 #define VENDOR          0x1d6b
@@ -13,8 +15,8 @@ public:
   bool init();
   bool initNull();
 
-  bool sendHIDReport(const unsigned char *buf, size_t len);
-  bool sendMIDIData(const unsigned char *buf, size_t len);
+  bool sendHIDReport(std::string report);
+  bool sendMIDIReport(std::string report);
 
   void deinit();
 private:

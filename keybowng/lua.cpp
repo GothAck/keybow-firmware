@@ -1,19 +1,21 @@
 #include <plog/Log.h>
 
-#include <sol/sol.hpp>
 
 #include "lua.hpp"
+#include "lua_impl.hpp"
 #include "luakeybow.hpp"
 
 using namespace std;
 
-struct LuaImpl {
-  LuaImpl(Lua *p): p(p) {}
+LuaImpl::LuaImpl(Lua *p): lua(std::make_shared<sol::state>()), p(p) {}
 
-  sol::state lua;
+bool LuaImpl::sendHIDReport(std::string report) {
+  return p->_keys->sendHIDReport(report);
+}
 
-  Lua *p;
-};
+bool LuaImpl::sendMIDIReport(std::string report) {
+  return p->_keys->sendMIDIReport(report);
+}
 
 Lua::Lua(std::shared_ptr<Keys> keys, std::shared_ptr<Lights> lights):
   _keys(keys),
@@ -27,7 +29,7 @@ Lua::~Lua() {
 
 bool Lua::init() {
   PLOG_DEBUG << "open libraries";
-  _impl->lua.open_libraries(sol::lib::base, sol::lib::math, sol::lib::string, sol::lib::package);
+  _impl->lua->open_libraries(sol::lib::base, sol::lib::math, sol::lib::string, sol::lib::package);
   PLOG_DEBUG << "init keybow table";
   LuaKeybow::initTable(_impl->lua, shared_from_this());
 
@@ -38,11 +40,18 @@ void Lua::deinit() {
 }
 
 bool Lua::load(std::string file) {
-  return _impl->lua.script_file(file).valid();
+  sol::protected_function_result res = _impl->lua->safe_script_file(file, &sol::script_pass_on_error);
+  if (!res.valid()) {
+    sol::error err = res;
+    PLOG_ERROR << "Error running " << file;
+    PLOG_ERROR << err.what();
+    return false;
+  }
+  return true;
 }
 
 void Lua::setup() {
-  sol::protected_function setup = _impl->lua["setup"];
+  sol::protected_function setup = (*_impl->lua)["setup"];
   if (setup.valid()) {
     auto ret = setup();
 
@@ -55,7 +64,7 @@ void Lua::setup() {
 }
 
 void Lua::tick() {
-  sol::protected_function tick = _impl->lua["tick"];
+  sol::protected_function tick = (*_impl->lua)["tick"];
   if (tick.valid()) {
     tick();
   }
@@ -66,7 +75,7 @@ void Lua::handleKey(int key, bool state) {
   char fn[14];
   snprintf(fn, 14, "handle_key_%02d", key);
   const char *fnc = (char *)&fn;
-  sol::protected_function handle_key = _impl->lua[fnc];
+  sol::protected_function handle_key = (*_impl->lua)[fnc];
 
   if (!handle_key.valid()) {
     PLOG_ERROR << "Failed to find function " << fnc;

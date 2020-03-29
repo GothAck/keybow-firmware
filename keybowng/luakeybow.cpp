@@ -6,6 +6,7 @@
 #include "luakeybow.hpp"
 
 #include "lua.hpp"
+#include "lua_impl.hpp"
 
 using namespace std;
 
@@ -30,11 +31,11 @@ struct LuaKeybowImpl {
   static int ascii_to_hid(int key); //
 
   static bool set_key(int key, bool pressed);
-  static bool set_key_str(std::string key, int pressed);
 
   static bool send_midi_note(int channel, int note, int velocity, int speed);
 
   static shared_ptr<Lua> lua;
+  static shared_ptr<sol::state> state;
   static unsigned short _modifiers;
   static unsigned short _media_keys;
   static std::set<unsigned short> _keys;
@@ -42,21 +43,22 @@ struct LuaKeybowImpl {
   static void sendHIDReport();
 };
 
-void LuaKeybow::initTable(sol::state &lua, std::shared_ptr<Lua> ref) {
+void LuaKeybow::initTable(shared_ptr<sol::state> lua, std::shared_ptr<Lua> ref) {
   PLOG_DEBUG << "init table";
   LuaKeybowImpl::lua = ref;
-  lua["keybow_set_modifier"] = &LuaKeybowImpl::set_modifier;
-  lua["keybow_set_media_key"] = &LuaKeybowImpl::set_media_key;
-  lua["millis"] = &LuaKeybowImpl::millis;
-  lua["keybow_sleep"] = &LuaKeybowImpl::sleep;
-  lua["keybow_usleep"] = &LuaKeybowImpl::usleep;
-  lua["keybow_send_text"] = &LuaKeybowImpl::send_text;
-  lua["keybow_set_pixel"] = &LuaKeybowImpl::set_pixel;
-  lua["keybow_auto_lights"] = &LuaKeybowImpl::auto_lights;
-  lua["keybow_clear_lights"] = &LuaKeybowImpl::clear_lights;
-  lua["keybow_load_pattern"] = &LuaKeybowImpl::load_pattern;
-  lua["keybow_set_key"] = &LuaKeybowImpl::set_key;
-  lua["keybow_send_midi_note"] = &LuaKeybowImpl::send_midi_note;
+  LuaKeybowImpl::state = lua;
+  lua->set("keybow_set_modifier", &LuaKeybowImpl::set_modifier);
+  lua->set("keybow_set_media_key", &LuaKeybowImpl::set_media_key);
+  lua->set("millis", &LuaKeybowImpl::millis);
+  lua->set("keybow_sleep", &LuaKeybowImpl::sleep);
+  lua->set("keybow_usleep", &LuaKeybowImpl::usleep);
+  lua->set("keybow_send_text", &LuaKeybowImpl::send_text);
+  lua->set("keybow_set_pixel", &LuaKeybowImpl::set_pixel);
+  lua->set("keybow_auto_lights", &LuaKeybowImpl::auto_lights);
+  lua->set("keybow_clear_lights", &LuaKeybowImpl::clear_lights);
+  lua->set("keybow_load_pattern", &LuaKeybowImpl::load_pattern);
+  lua->set("keybow_set_key", &LuaKeybowImpl::set_key);
+  lua->set("keybow_send_midi_note", &LuaKeybowImpl::send_midi_note);
 }
 
 bool LuaKeybowImpl::set_modifier(int key, int state) {
@@ -183,7 +185,7 @@ void LuaKeybowImpl::sendHIDReport() {
     if (i >= HID_REPORT_SIZE) break; // Break at max buffer size
   }
 
-  lua->_keys->sendHIDReport((const unsigned char *)&buf, HID_REPORT_SIZE);
+  lua->_impl->sendHIDReport(string((char *)&buf, HID_REPORT_SIZE));
 
   // TODO: Add media keys
 }
@@ -201,11 +203,13 @@ bool LuaKeybowImpl::send_midi_note(int channel, int note, int velocity, int spee
   buf[1] = note & 0x7f;
   buf[2] = velocity & 0x7f;
 
-  lua->_keys->sendMIDIData((const unsigned char *)&buf, 3);
+  lua->_impl->sendMIDIReport(string((char *)&buf, 3));
+
   return true;
 }
 
 shared_ptr<Lua> LuaKeybowImpl::lua = nullptr;
+shared_ptr<sol::state> LuaKeybowImpl::state = nullptr;
 unsigned short LuaKeybowImpl::_modifiers = 0;
 unsigned short LuaKeybowImpl::_media_keys = 0;
 std::set<unsigned short> LuaKeybowImpl::_keys = {};

@@ -10,6 +10,6 @@ class Lua;
 class LuaKeybowImpl;
 
 struct LuaKeybow {
-  static void initTable(sol::state &lua, std::shared_ptr<Lua> ref);
+  static void initTable(std::shared_ptr<sol::state> lua, std::shared_ptr<Lua> ref);
 };
 

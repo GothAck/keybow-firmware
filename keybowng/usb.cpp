@@ -8,6 +8,8 @@
 
 #include "usb.hpp"
 
+using namespace std;
+
 struct USBImpl {
   USBImpl(USB *p): p(p) {}
 
@@ -271,18 +273,18 @@ void USB::deinit() {
   }
 }
 
-bool USB::sendHIDReport(const unsigned char *buf, size_t len) {
-  int ret = write(_impl->fd_hid, buf, len);
-  if (ret != len) {
+bool USB::sendHIDReport(string report) {
+  int ret = write(_impl->fd_hid, report.c_str(), report.length());
+  if (ret != report.length()) {
     PLOG_ERROR << "Error writing HID report";
     return false;
   }
   return true;
 }
 
-bool USB::sendMIDIData(const unsigned char *buf, size_t len) {
-  int ret = write(_impl->fd_midi, buf, len);
-  if (ret != len) {
+bool USB::sendMIDIReport(string report) {
+  int ret = write(_impl->fd_midi, report.c_str(), report.length());
+  if (ret != report.length()) {
     PLOG_ERROR << "Error writing MIDI data";
     return false;
   }

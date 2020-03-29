@@ -28,5 +28,6 @@ private:
   std::shared_ptr<Lights> _lights;
   LuaImpl *_impl;
   friend class LuaKeybowImpl;
+  friend class LuaImpl;
 };
 

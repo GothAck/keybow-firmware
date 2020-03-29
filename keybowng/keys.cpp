@@ -32,12 +32,12 @@ void Keys::deinit() {
   bcm2835_close();
 }
 
-bool Keys::sendHIDReport(const unsigned char *buf, size_t len) {
-  return _usb->sendHIDReport(buf, len);
+bool Keys::sendHIDReport(string report) {
+  return _usb->sendHIDReport(report);
 }
 
-bool Keys::sendMIDIData(const unsigned char *buf, size_t len) {
-  return _usb->sendMIDIData(buf, len);
+bool Keys::sendMIDIReport(string report) {
+  return _usb->sendMIDIReport(report);
 }
 
 void Keys::update() {
