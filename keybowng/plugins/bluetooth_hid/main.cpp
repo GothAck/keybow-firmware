@@ -21,6 +21,7 @@ const string sdp_record((char *)&sdp_record_xml, sdp_record_xml_len);
 
 namespace bthid {
 
+  sol::table module;
   unique_ptr<sdbus::IConnection> connection;
   unique_ptr<sdbus::IProxy> manager;
   unique_ptr<sdbus::IObject> profile;
@@ -120,6 +121,7 @@ namespace bthid {
       len = sizeof(addr);
       socket_interrupt_client = accept(socket_interrupt, (struct sockaddr *)&addr, &len);
       cerr << "bluetooth accepted interrupt client" << endl;
+      module["connected"] = true;
     });
   }
 
@@ -149,12 +151,13 @@ namespace bthid {
 
 	sol::table open_bthid(sol::this_state L) {
 		sol::state_view lua(L);
-		sol::table module = lua.create_table();
+		module = lua.create_table();
 
 		module["type"] = "hid";
 		module["init"] = init;
 		module["deinit"] = deinit;
 		module["sendHIDReport"] = sendHIDReport;
+		module["connected"] = false;
 
 		return module;
 	}
