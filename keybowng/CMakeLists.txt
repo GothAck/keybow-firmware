@@ -47,3 +47,5 @@ add_executable(keybow
   main.cpp)
 set_property(TARGET keybow PROPERTY CXX_STANDARD 20)
 target_link_libraries(keybow libkeybow)
+
+add_subdirectory(plugins)

@@ -7,3 +7,6 @@
 [submodule "keybowng/vendor/libusbgx"]
 	path = keybowng/vendor/libusbgx
 	url = https://github.com/libusbgx/libusbgx
+[submodule "keybowng/plugins/bluetooth_hid/vendor/sdbus-cpp"]
+	path = keybowng/plugins/bluetooth_hid/vendor/sdbus-cpp
+	url = https://github.com/Kistler-Group/sdbus-cpp

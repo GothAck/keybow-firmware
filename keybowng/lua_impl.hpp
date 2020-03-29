@@ -12,6 +12,8 @@ struct LuaImpl {
   bool sendMIDIReport(std::string report);
 
   std::shared_ptr<sol::state> lua;
-  
+
+  std::unordered_map<std::string, std::unordered_map<std::string, sol::table>> plugins;
+
   Lua *p;
 };

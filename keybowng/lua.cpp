@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include <plog/Log.h>
 
 
@@ -10,10 +12,30 @@ using namespace std;
 LuaImpl::LuaImpl(Lua *p): lua(std::make_shared<sol::state>()), p(p) {}
 
 bool LuaImpl::sendHIDReport(std::string report) {
+  if (plugins.find("hid") != plugins.end()) {
+    for (auto &p : plugins["hid"]) {
+      sol::safe_function func = p.second["sendHIDReport"];
+      auto res = func(report);
+      if (!res.valid()) {
+        sol::error err = res;
+        PLOG_ERROR << "HID Plugin " << p.first << " failed call to sendHIDReport " << err.what();
+      }
+    }
+  }
   return p->_keys->sendHIDReport(report);
 }
 
 bool LuaImpl::sendMIDIReport(std::string report) {
+  if (plugins.find("midi") != plugins.end()) {
+    for (auto &p : plugins["midi"]) {
+      sol::safe_function func = p.second["sendMIDIReport"];
+      auto res = func(report);
+      if (!res.valid()) {
+        sol::error err = res;
+        PLOG_ERROR << "MIDI Plugin " << p.first << " failed call to sendMIDIReport " << err.what();
+      }
+    }
+  }
   return p->_keys->sendMIDIReport(report);
 }
 
@@ -37,6 +59,19 @@ bool Lua::init() {
 }
 
 void Lua::deinit() {
+  for (auto &pm : _impl->plugins) {
+    for (auto &p : pm.second) {
+      sol::safe_function deinit = p.second["deinit"];
+      if (deinit.valid()) {
+        PLOG_DEBUG << "Calling plugin " << p.first << " deinit";
+        auto ret = deinit();
+        if (!ret.valid()) {
+          sol::error err = ret;
+          PLOG_ERROR << "Error calling deinit " << err.what();
+        }
+      }
+    }
+  }
 }
 
 bool Lua::load(std::string file) {

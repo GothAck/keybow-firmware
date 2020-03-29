@@ -1,5 +1,6 @@
 #include <thread>
 #include <chrono>
+#include <filesystem>
 
 #include <plog/Log.h>
 
@@ -33,6 +34,8 @@ struct LuaKeybowImpl {
   static bool set_key(int key, bool pressed);
 
   static bool send_midi_note(int channel, int note, int velocity, int speed);
+
+  static bool load_plugin(string plugin);
 
   static shared_ptr<Lua> lua;
   static shared_ptr<sol::state> state;
@@ -206,6 +209,50 @@ bool LuaKeybowImpl::send_midi_note(int channel, int note, int velocity, int spee
   lua->_impl->sendMIDIReport(string((char *)&buf, 3));
 
   return true;
+}
+
+bool LuaKeybowImpl::load_plugin(string plugin) {
+  PLOG_INFO << "Loading plugin " << plugin;
+  sol::safe_function require = (*state)["require"];
+
+  auto res = require(plugin);
+
+  bool success = false;
+  if (res.valid()) {
+    sol::table table = res;
+    string plugin_type = table["type"];
+    PLOG_WARNING << plugin_type;
+
+    auto &plugins = lua->_impl->plugins;
+    if (plugins.find(plugin_type) == plugins.end()) {
+      plugins[plugin_type] = {{plugin, table}};
+      success = true;
+    } else {
+      auto &plugins_type = plugins[plugin_type];
+      if (plugins_type.find(plugin) == plugins_type.end()) {
+        plugins_type[plugin] = table;
+        success = true;
+      }
+    }
+
+    if (success) {
+      sol::safe_function init = table["init"];
+      PLOG_DEBUG << "Plugin has init function? " << init.valid();
+      if (init.valid()) {
+        auto ret = init();
+        if (!ret.valid()) {
+          sol::error err = ret;
+          PLOG_ERROR << "Error initializing plugin " << err.what();
+        }
+      }
+    }
+  }
+
+  if (!success) {
+    PLOG_ERROR << "Failed to load plugin " << plugin;
+  }
+
+  return success;
 }
 
 shared_ptr<Lua> LuaKeybowImpl::lua = nullptr;
