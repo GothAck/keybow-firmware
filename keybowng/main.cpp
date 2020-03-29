@@ -24,7 +24,7 @@ R"(Keybow.
 
     Options:
       -h --help                     This help.
-      -d DIR --dir DIR              Directory containing lua scripts. [default: .]
+      -d DIR --dir DIR              Directory containing scripts, config, and plugins. [default: /boot]
       -n --no-output                Redirect all HID and MIDI output to /dev/null.
       -l LEVEL --loglevel LEVEL     Set log level (verbose, debug, warning, error, none). [default: info]
       -p PLUGIN --plugin=PLUGIN     Load a plugin
